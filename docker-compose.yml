@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+
+  backend:
+    image: 921492/jenkins-test:backend
+    container_name: backend
+    restart: always
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  frontend:
+    image: 921492/jenkins-test:frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

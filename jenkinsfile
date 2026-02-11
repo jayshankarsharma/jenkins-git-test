@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_REPO = "921492/jenkins-test"
+        BACKEND_IMAGE = "921492/jenkins-test:backend"
+        FRONTEND_IMAGE = "921492/jenkins-test:frontend"
+        SERVER_IP = "YOUR_SERVER_IP"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                    url: 'git@github.com:jayshankarsharma/jenkins-git-test.git'
+            }
+        }
+
+        stage('Build Backend Image') {
+            steps {
+                sh 'docker build -t $BACKEND_IMAGE ./backend'
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                sh 'docker build -t $FRONTEND_IMAGE ./frontend'
+            }
+        }
+
+        stage('Login to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                sh 'docker push $BACKEND_IMAGE'
+                sh 'docker push $FRONTEND_IMAGE'
+            }
+        }
+
+        stage('Deploy to Server') {
+            steps {
+                sshagent(['deploy-server-ssh']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP '
+                        docker pull $BACKEND_IMAGE &&
+                        docker pull $FRONTEND_IMAGE &&
+                        cd /home/ubuntu/app &&
+                        docker compose down &&
+                        docker compose up -d
+                    '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Deployment Successful!"
+        }
+        failure {
+            echo "❌ Deployment Failed!"
+        }
+    }
+}
