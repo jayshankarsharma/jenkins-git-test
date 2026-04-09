@@ -1,0 +1,13 @@
+name: CI Workflow                
+
+on: [push, pull_request]           
+
+jobs:                              # One or more jobs to execute
+  build-and-test:                  # Unique ID for the job
+    runs-on: self-hosted       # The type of machine to run on
+    steps:                         # Sequence of tasks in the job
+      - name: Check out code       # Name of a step
+        uses: actions/checkout@v4  # Use a pre-defined action
+
+      - name: Run a script
+        run: echo "Building project..."
